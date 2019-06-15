@@ -1,2 +1,2 @@
 # Miscellaneous
-Various type of code
+Various types of code
