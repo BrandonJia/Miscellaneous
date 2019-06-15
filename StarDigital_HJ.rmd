@@ -1,0 +1,193 @@
+---
+title: "Project20190211"
+author: "H.J. Jia"
+date: "Feb.2 2019"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+```{r}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# Introduction to the case
+
+
+# Concerns about the experiment design.
+
+- What is the unit of analysis?
+
+Ads
+
+- What is the definition of treatment here? 
+
+Treatment is nested: customers that observe ads for Star digital.
+
+- Can you reliably target a unit with treatment?
+
+It depends. 
+
+1. Charity ads may by any chance correlate with the ads campaign in some way. For example, the brand image by coincidence is strongly and close bonding with the charity organization in the charity ads, which in turn, triggers or motivates control group of customers to make more purchases, and eventually, drowns or diminishes the real effect of the ad campaign.
+
+2. Marginal untility may decrease. The campaign may be coincident with other marketing campaign sponsored by the same company. Consequently,more exposure might not generate more increase in purchase.
+
+
+# Questions to solve
+
+1. Is online advertising effective for Star Digital?
+
+
+2. Is there a frequency effect of advertising on purchase? In particular, the question is whether increasing the frequency of advertising the probability of purchase?
+
+
+3. Which sites should Star Digital advertise on? In particular, should it put its advertising dollars in Site 6 or in Site 1 through 5?
+
+```{r,echo = FALSE}
+library(ggplot2)
+library(tidyr)
+library(dplyr)
+library(MESS)
+```
+
+
+```{r, echo=FALSE}
+path <- 'C:/Users/H.J. Jia/OneDrive/2019Spring/MSBA6440/'
+file <- 'starDigital.csv'
+data <- read.csv(paste(path, file, sep =''))
+```
+
+```{r}
+data_channel <- data %>% mutate(channel = ifelse(sum1to5 > 0 & imp_6 > 0,
+                                 'both',
+                                 ifelse(sum1to5 > 0 & imp_6 ==0,
+                                        '1to5',
+                                        '6')))
+glimpse(data_channel)
+```
+## 0. totally garbage, just throw them away
+```{r}
+table(data$test)
+```
+
+```{r}
+table(data_channel$test,data_channel$channel)
+```
+
+
+```{r}
+conversionrRateBase <- data %>% 
+                        group_by(test) %>% 
+                        summarize(conversionrRateBase = mean(purchase))
+
+```
+
+```{r}
+
+num <- data %>% 
+            group_by(purchase, test) %>% 
+            summarise(num = n()) %>% ungroup()
+total <- data %>% 
+            group_by(purchase) %>% 
+            summarise(total = n())
+percent <- num %>% left_join(total, by=c('purchase')) %>% mutate(percent = num / total)
+temp <- data %>% left_join(percent, by = c('purchase','test'))
+percent
+```
+
+
+
+
+## Q1
+
+To answer this question, we need to figure out how to define effectiveness. Generally speaking, we need to take the goal of this experiment into consideration but without any information about baseline metrics and unrepresented sample of original experiment (roughly 50% of customers make a purchase, while total conversion rate is less than 0.153%), it is more practical to use statistical analysis rather than financial modeling to verify its effectiveness. 
+
+To start with, let's explore statistical power. With sample size we have,  
+```{r pressure, echo=FALSE}
+power_t_test(n = NULL, 
+             delta = 0.02, 
+             sig.level = 0.1, 
+             power = 0.8,
+             ratio = 22647/2656,
+             type = c('two.sample'),
+             alternative = c('two.sided'))
+```
+Compared to sample size we have, our analysis may be underpowered given:    1. difference between the mean of two groups of customers is 0.02,
+  2. siginificant level is 0.1, which means, the confidence level of test
+  3. power is 0.8, which means, the chance we detect a lift if one actually exists.
+### Randomazation Test 
+
+Before delving into continuous relationship between frequency effect of advertising and purchase, we need to consider latent endogeneity which would throw this causality into serious question. Specifically, we want to know, for two groups of customers, whether customers have the same probalistic exposure to different channels.
+
+```{r}
+t.test(data = data, sum1to5 ~ test)
+```
+```{r}
+t.test(data = data, imp_6 ~ test)
+```
+
+### Something worthy of thinking deeply!!!
+Through no difference between 2 groups of groups in terms of impressions when combining channel 1 all the way to 5, individual detections reveal that not all channels are exactly equivalent to two groups. And therefore endogeneity may shatter the validity of our results. 
+
+Website type is an endogeneous meditator when evaluating this relationship. A practical example is, demonstrating technic gadget ad on a tech media website is more likely to generate website visits and purchase than on Chinese poetry webside. 
+
+From context of the case, Star Digital has no authority to decide which one of 5 channels to use in practical, but considering the large amount of the original experiment data, maybe the company should consider resample an balanced data for further validation.
+
+```{r}
+t.test(data = data, imp_1 ~ test)
+```
+
+```{r}
+t.test(data = data, imp_2 ~ test)
+```
+
+
+```{r}
+t.test(data = data, imp_3 ~ test)
+```
+
+
+```{r}
+t.test(data = data, imp_4 ~ test)
+```
+
+
+```{r}
+t.test(data = data, imp_5 ~ test)
+```
+
+```{r}
+t.test(data = data, purchase ~ test)
+```
+
+Based on our test, we have 94% of confidence to conclude that customers who observe ads from channel 1 to 6 purchased 0.02 units more on average from Star Digital than ones who did not. 
+
+Caveat: Considering the power of this test, we recommend we get more data to verify the result before making serious business decision.
+
+
+## Q2
+### Frequency effect of advertising on purchase
+
+
+```{r}
+model1 <- lm(data = data, formula = purchase ~ sum1to5 + imp_6)
+summary(model1)
+```
+
+To sum up, channel1 to 5 and channel 6 both have positive effect on purchase, and yet the magnitude of effect varies: 4 unit increase in purchase on average given 1000 unit increase in impressions on channel 1 to 5 and 2 units increase in purchase on average given 1000 unit increase in impressions on channel 6.
+
+ 
+## Q3
+
+### easier version:
+As we can see from last question, for every 1000 impression, Site 1 through 5 have higher purchase, which is 3 versus 2 from Site 6. And one single purchase results in $1,200 for Star Digital on average. Thus, Total revenue per 1000 impression will be $3,600 from Site 1 through 5, and $2,400 from Site 6.
+
+Now lets consider the cost. According to the case, 20 dollars per 1000 impressions on Site 6 and 25 dollars on Site 1 through 5. 
+
+So profits generating from Site 1 through 6 will be $3,575 ($3,600 - $25) and from Site 6 will be $2,380 ($2,400 - $20). Clearly, Site 1 through 5 is effective financially.
+
+### Harder version:
+
+Create several buckets to explore the curve of the relationship between purchases and impressions.

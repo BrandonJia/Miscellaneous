@@ -1,0 +1,112 @@
+---
+title: "lecture 3"
+subtitle: 'MSBA6440'
+date: Jan 31, 2019
+author: Haojin Jia
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+data <- read.csv('MovieData-Exp.csv')
+```
+
+```{r}
+library(tidyr)
+summary(data)
+```
+```{r}
+head(data,20)
+```
+
+
+
+
+```{r}
+library(ggplot2)
+qplot(data = data, likes)
+qplot(data = data, price)
+```
+
+
+
+
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+library(MESS)
+power_t_test(delta = 0.1, sig.level = 0.1, power= 0.8, type= c('two.sample'),alternative = c("two.sided"), n =NULL)
+```
+
+```{r}
+power_t_test(delta = NULL, sig.level = 0.1, power= 0.8, type= c('two.sample'),alternative = c("two.sided"), n =118)
+```
+```{r}
+names(data)
+```
+
+```{r}
+library(dplyr)
+data <- data %>% mutate(same = ifelse(price == base_price, 1,0))    
+
+t.test(data = data,likes ~ same)
+```
+p value is not significatnt and so no problem with it
+```{r}
+t.test(data = data, base_price ~ same)
+```
+
+
+```{r}
+model = lm(data,  formula = price ~ same)
+summary(model)
+```
+```{r}
+t.test(data = data, leases ~ same)
+```
+```{r}
+data <- data %>% mutate(discount = base_price - price)
+summary(data$discount)
+qplot(data$discount)
+```
+
+```{r}
+summary(data[data$same == 0,]$discount)
+```
+```{r}
+model <- lm(data, formula = leases ~ log(discount+1))
+summary(model)
+```
+
+```{r}
+model <- lm(data = data, formula = leases ~ base_price * factor(same))
+summary(model)
+```
+
+```{r}
+model <- lm(data = data, formula = log(leases+1) ~ log(base_price+1)*factor(same)) 
+summary(model)
+```
+```{r}
+data <- data %>% mutate(basepricedemean = base_price - mean(base_price))
+data <- data %>% mutate(likes_dm = likes - mean(likes))
+model <- lm(data = data, formula = leases ~ likes_dm*factor(same))
+summary(model)
+
+data <- data %>% mutate(likes)
+```
+
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
