@@ -1,8 +1,5 @@
 ---
 title: "lecture 3"
-subtitle: 'MSBA6440'
-date: Jan 31, 2019
-author: Haojin Jia
 output: html_document
 ---
 
